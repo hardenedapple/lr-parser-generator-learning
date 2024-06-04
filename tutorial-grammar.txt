@@ -1,0 +1,20 @@
+// Start  = Add              -> id
+// Add    = Add "+" Factor   -> mkPlus
+//        | Factor           -> id
+// Factor = Factor "*" Term  -> mkMult
+//        | Term             -> id
+// Term   = "(" Add ")"      -> nth 1
+//        | name             -> mkName
+//        | int              -> mkInt
+
+Start  = Add
+
+Add    = Add "+" Factor
+Add    = Factor
+
+Factor = Factor "*" Term
+Factor = Term
+
+Term   = "(" Add ")"
+Term   = name
+Term   = int
