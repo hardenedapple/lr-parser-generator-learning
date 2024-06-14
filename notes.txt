@@ -219,29 +219,29 @@ FOLLOW:  Difference between this tutorial and the other one is that FOLLOW is pa
 
 I *think* FOLLOW has looked through FIRST sets here, and has looked through them transitively (which seems odd given that the FIRST sets were not defined transitively).
 
-FOLLOW(0, Add) = {01, "+"}
-FOLLOW(0, Factor) = {03, "*"}
-FOLLOW(0, Term) = {05}
+FOLLOW(0, Add) = {01, "+", ")"}
+FOLLOW(0, Factor) = {03, "*", "+", ")"}
+FOLLOW(0, Term) = {05, "*", "+", ")"}
 FOLLOW(0, "(") = {"(", int, name}
-FOLLOW(0, name) = {07}
-FOLLOW(0, int) = {08}
+FOLLOW(0, name) = {07, "*", "+", ")"}
+FOLLOW(0, int) = {08, "*", "+", ")"}
 
 FOLLOW(1, "+") = {"(", int, name}
 
 FOLLOW(2, "*") = {"(", int, name}
 
 FOLLOW(4, Add) = {")", "+"}
-FOLLOW(4, Factor) = {03, "*"}
-FOLLOW(4, Term) = {05}
+FOLLOW(4, Factor) = {"*", ")", "+"}
+FOLLOW(4, Term) = {"*", ")", "+"}
 FOLLOW(4, "(") = {"(", int, name}
-FOLLOW(4, int) = {07}
-FOLLOW(4, name) = {08}
+FOLLOW(4, int) = {"*", ")", "+"}
+FOLLOW(4, name) = {"*", ")", "+"}
 
 FOLLOW(7, Factor) = {01, "*"}
-FOLLOW(7, Term)   = {03}
+FOLLOW(7, Term)   = {03, "*"}
 FOLLOW(7, "(")    = {"(", int, name}
-FOLLOW(7, name)   = {05}
-FOLLOW(7, int)   = {06}
+FOLLOW(7, name)   = {05, "*"}
+FOLLOW(7, int)   = {06, "*"}
 
 FOLLOW(8, Term)  = {01}
 FOLLOW(8, "(")   = {"(", int, name}
@@ -249,7 +249,7 @@ FOLLOW(8, name)  = {03}
 FOLLOW(8, int)   = {04}
 
 FOLLOW(9, ")")   = {01}
-FOLLOW(9, "+")   = {"+"}
+FOLLOW(9, "+")   = {"(", name, int}
 
 FOLLOW(11, "*")  = {"(", int, name}
 
