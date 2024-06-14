@@ -26,6 +26,7 @@ def get_rules(text):
 
 class SpecialTok(enum.Enum):
     EOL = 'EOL'
+    REDUCE = 'REDUCE'
 
 def all_nonterminals(rules):
     return set(rules.keys())
@@ -96,13 +97,68 @@ def follow(rules):
     initial = collections.defaultdict(set)
     for rule in itt.chain(*rules.values()):
         merge_fol(initial, basic_follow_from_rule(rule))
-    # TODO Have done everything except the transitive closure on FOLLOW so far.
-    # everything below is left-over.
     ends_token = {}
     for nt in nonterminals:
         ends_token[nt] = [other for other in nonterminals
              if any(r[-1] == nt for r in rules[other])]
     return transitive_closure(initial, make_follow_tc(ends_token))
+
+class TableEntry:
+    def __init__(self, key, rule, point):
+        self.point = point
+        self.key = key
+        self.rule = tuple(rule)
+        self.reduce_point = len(rule)
+    @classmethod
+    def from_rule_and_name(cls, rules, name):
+        assert(len(rules[name]) == 1)
+        return cls(name, rules[name][0], 0)
+    def next_token(self):
+        if self.point == self.reduce_point:
+            return SpecialTok.REDUCE
+        return self.rule[self.point]
+    def __repr__(self):
+        return '{} = {}{}{}'.format(
+            self.key,
+            ' '.join(self.rule[:self.point]),
+            ' . ',
+            ' '.join(self.rule[self.point:]))
+    def __hash__(self):
+        return hash((self.key, self.rule, self.point))
+
+class TableSet:
+    def __init__(self, first_entry):
+        self.storage = set([first_entry])
+    def shift_hash(self):
+        return hash(tuple(set(e.next_token for e in self.storage)))
+    @staticmethod
+    def add_predictions_1(accum, rules):
+        ret = copy.deepcopy(accum)
+        for entry in self.storage:
+            next_tok = entry.next_token()
+            for expansion in rules.get(next_tok, []):
+                ret.add(TableEntry(next_tok, expansion, 0))
+        return ret
+    def add_predictions(self, rules):
+        '''Add all "predictions" for the current table set'''
+        self.storage = transitive_closure(self.storage, add_predictions_1)
+    def shift(self, seen_token):
+        alt_storage = set()
+        for entry in self.storage:
+            if entry.next_token() == seen_token:
+                alt_storage.add()
+    
+
+def gen_table(rules, start_name):
+    start_token = TableEntry.from_rule_and_name(rules, start_name)
+    print(start_token)
+    return start_token
+    
+    # First have 'Start' with 'dot' before it.
+    #   - Look at token on right hand side of the 'dot'.
+    #   - If is nonterminal, add the rules to generate that.
+    # Second, shift the 'dot' in all rules for above table entry.
+    #   - 
 
 if __name__ == '__main__':
     with open('tutorial-grammar.txt') as infile:

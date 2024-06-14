@@ -1,0 +1,288 @@
+One "parsing state" consists of all viable rules and position pairs.
+- E.g. Beginning of 'Start', which is also beginning of 'Add', which is also
+  beginning of 'Factor', ...
+
+FOLLOW and FIRST help us decide what to do based on "the next item"
+- FOLLOW is parametrised by the *itemset*
+  (So FOLLOW(itemset1, symbol) rather than FOLLOW(symbol)).
+- According to https://boxbase.org/entries/2019/oct/14/lr1-parsing-tables/,
+  FIRST is not the transitive closure -- it is just direct.
+  Though this may be mitigated by the fact that in that tutorial any itemset
+  contains all rules effective at this point.  Hence this could be an effective
+  transitive closure.
+
+LR(1) parser 
+
+
+Manual itemsets:
+
+
+Without shifts or reduces mentioned.
+
+s0:  Start  -> . Add
+    Add    -> . Add "+" Factor
+    Add    -> . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+    
+s1:  Start -> Add .
+    Add   -> Add . "+" Factor
+
+s2:  Add   -> Factor .
+    Factor -> Factor . "*" Term
+
+s3:  Factor -> Term .
+
+s4:  Term   -> "(" . Add ")"
+    Add    -> . Add "+" Factor
+    Add    -> . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+    
+s5:  Term -> name .
+
+s6:  Term -> int .
+
+s7:  Add -> Add "+" . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+s8:  Factor -> Factor "*" . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+s9:  Term  -> "(" Add . ")"
+    Add   -> Add . "+" Factor
+
+s10: Factor -> Factor "*" Term .
+
+s11: Add -> Add "+" Factor .
+     Factor -> Factor . "*" Term
+
+s12: Term  -> "(" Add ")" .
+
+
+With shifts and reduces (but without lookahead)
+
+Reduction Items:
+s1: Start -> Add .
+s2: Add   -> Factor .
+s3: Factor -> Term .
+s5: Term -> name .
+s6: Term -> int .
+s10: Factor -> Factor "*" Term .
+s11: Add -> Add "+" Factor .
+s12: Term -> "(" Add ")" .
+
+Tables with shift/reduce annotations
+s0:  Start  -> . Add                
+    Add    -> . Add "+" Factor      
+    Add    -> . Factor              
+    Factor -> . Factor "*" Term     
+    Factor -> . Term                
+    Term   -> . "(" Add ")"         
+    Term   -> . name                
+    Term   -> . int                 
+
+Actions:
+    Add:    Shift 1 / Reduce 1 Start
+    Factor: Shift 2 / Reduce 1 Start
+    Term:   Shift 3 / Reduce 1 Start
+    "(":    Shift 4
+    name:   Shift 5 / Reduce 1 Start
+    int:    Shift 6 / Reduce 1 Start
+    
+s1:  Start -> Add .
+    Add   -> Add . "+" Factor
+
+Actions:
+          Reduce 1 Start
+    "+":  Shift 7
+
+s2:  Add   -> Factor .
+    Factor -> Factor . "*" Term
+
+Actions:
+          Reduce 1 Add
+    "+":  Shift 8
+
+s3:  Factor -> Term .
+
+Actions:
+          Reduce 1 Factor
+
+s4:  Term   -> "(" . Add ")"
+    Add    -> . Add "+" Factor
+    Add    -> . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+Actions:
+    Add:     Shift 9
+    Factor:  Shift 2 / Reduce 1 Add
+    Term:    Shift 3 / Reduce 1 Factor
+    "(":     Shift 4
+    name:    Shift 5 / Reduce 1 Term
+    int:     Shift 6 / Reduce 1 Term
+    
+s5:  Term -> name .
+
+Actions:
+             Reduce 1 Term
+
+s6:  Term -> int .
+
+Actions:
+             Reduce 1 Term
+
+s7:  Add -> Add "+" . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+Actions:
+    Factor:  Shift 11 / Reduce 3 Add
+    Term :   Shift 3 / Reduce 1 Factor
+    "(":     Shift 4
+    name:    Shift 5 / Reduce 1 Term
+    int:     Shift 6 / Reduce 1 Term
+
+s8:  Factor -> Factor "*" . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+Actions:
+    Term: Shift 10 / Reduce 3 Factor
+    "(":     Shift 4
+    name:    Shift 5 / Reduce 1 Term
+    int:     Shift 6 / Reduce 1 Term
+
+s9:  Term  -> "(" Add . ")"
+    Add   -> Add . "+" Factor
+
+Actions:
+    ")":  Shift 12 / Reduce 3 Term
+    "+":  Shift 7
+
+s10: Factor -> Factor "*" Term .
+
+Actions:
+          Reduce 3 Factor
+
+s11: Add -> Add "+" Factor .
+     Factor -> Factor . "*" Term
+
+Actions:
+          Reduce 3 Add
+     "*": Shift 8
+
+s12: Term  -> "(" Add ")" .
+
+Actions:
+          Reduce 3 Term
+
+
+Attempting to remove the conflicts:
+
+FIRST According to this tutorial is different to that according to the other one.
+This one has empty sets for symbols that are not started with a non-terminal.  The other tutorial used a transitive closure so that such non-terminals would have the same FIRST set as their non-terminal initial value.
+FIRST(symbol)
+	FIRST(Start) = {}
+	FIRST(Add) = {}
+	FIRST(Factor) = {}
+	FIRST(Term) = {"(", name, int}
+
+If we were it make the transitive closure, we would see:
+FIRST(symbol)
+	FIRST(Start) = {"(", int, name}
+	FIRST(Add) = {"(", int, name}
+	FIRST(Factor) = {"(", int, name}
+	FIRST(Term) = {"(", name, int}
+
+FOLLOW:  Difference between this tutorial and the other one is that FOLLOW is parametrised on itemset.
+
+I *think* FOLLOW has looked through FIRST sets here, and has looked through them transitively (which seems odd given that the FIRST sets were not defined transitively).
+
+FOLLOW(0, Add) = {01, "+"}
+FOLLOW(0, Factor) = {03, "*"}
+FOLLOW(0, Term) = {05}
+FOLLOW(0, "(") = {"(", int, name}
+FOLLOW(0, name) = {07}
+FOLLOW(0, int) = {08}
+
+FOLLOW(1, "+") = {"(", int, name}
+
+FOLLOW(2, "*") = {"(", int, name}
+
+FOLLOW(4, Add) = {")", "+"}
+FOLLOW(4, Factor) = {03, "*"}
+FOLLOW(4, Term) = {05}
+FOLLOW(4, "(") = {"(", int, name}
+FOLLOW(4, int) = {07}
+FOLLOW(4, name) = {08}
+
+FOLLOW(7, Factor) = {01, "*"}
+FOLLOW(7, Term)   = {03}
+FOLLOW(7, "(")    = {"(", int, name}
+FOLLOW(7, name)   = {05}
+FOLLOW(7, int)   = {06}
+
+FOLLOW(8, Term)  = {01}
+FOLLOW(8, "(")   = {"(", int, name}
+FOLLOW(8, name)  = {03}
+FOLLOW(8, int)   = {04}
+
+FOLLOW(9, ")")   = {01}
+FOLLOW(9, "+")   = {"+"}
+
+FOLLOW(11, "*")  = {"(", int, name}
+
+------------------------------
+Resolving decision table conflict:
+Declare that after 'Start', input stream should end.
+Lookahead tables after each set describe what is expected after the rule.
+
+N.b. predict that the Add rule follows itself?
+- What is this assumption for?
+- Should I apply it?
+
+Going with adding TC(FIRST(Add)) to the "lookahead" of Add rule in the very first thing.
+However, this does not make sense in the context of the grammar that we're using.  There can not be another Add directly after the first one (because "x + y z + l" is not valid).
+
+Looking back at the first tutorial that I found confusing -- the "Parsing State" that it talks about includes a lookahead set.
+That lookahead set comes from the previous rule that we've expanded for.
+So in the below, since 'Factor -> . Term' was added as part of 'Add -> . Factor', and 'Factor -> . Factor "*" Term', we need the lookahead set to include '$' from the 'Add' rule, and "*" from the 'Factor' rule.
+
+Question:
+  Does the following thought hold?
+  - 'Factor -> . Factor "*" Term' could be expanded *from itself*, hence it could be followed by a "*".
+  Though is that it probably does ... similar for 'Factor -> . Term' being generated from the rule above.
+
+s0:  Start  -> . Add             {$}
+    Add    -> . Add "+" Factor   {$}
+    Add    -> . Factor           {$}
+    Factor -> . Factor "*" Term  {$, "+", "*"}
+    Factor -> . Term             {$, "+", "*"}
+    Term   -> . "(" Add ")"      {$, "+", "*"}
+    Term   -> . name             {$, "+", "*"}
+    Term   -> . int              {$, "+", "*"}
+
+s1:
+
+
