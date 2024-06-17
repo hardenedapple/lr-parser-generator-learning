@@ -114,7 +114,7 @@ s2:  Add   -> Factor .
 
 Actions:
           Reduce 1 Add
-    "+":  Shift 8
+    "*":  Shift 8
 
 s3:  Factor -> Term .
 
@@ -253,6 +253,16 @@ FOLLOW(9, "+")   = {"(", name, int}
 
 FOLLOW(11, "*")  = {"(", int, name}
 
+Global Follow sets (for SLR):
+FOLLOW(Add) = {$, "+", ")",}
+FOLLOW(Factor) = {$, "*", "+", ")"}
+FOLLOW(Term) = {$, "*", "+", ")"}
+FOLLOW("(") = {"(", int, name}
+FOLLOW(name) = {$, "*", "+", ")"}
+FOLLOW(int) = {$, "*", "+", ")"}
+FOLLOW(")") = {$, "*", "+", ")"}
+
+
 ------------------------------
 Resolving decision table conflict:
 Declare that after 'Start', input stream should end.
@@ -276,13 +286,239 @@ Question:
 
 s0:  Start  -> . Add             {$}
     Add    -> . Add "+" Factor   {$}
-    Add    -> . Factor           {$}
+    Add    -> . Factor           {$, "+"}
     Factor -> . Factor "*" Term  {$, "+", "*"}
     Factor -> . Term             {$, "+", "*"}
     Term   -> . "(" Add ")"      {$, "+", "*"}
     Term   -> . name             {$, "+", "*"}
     Term   -> . int              {$, "+", "*"}
 
-s1:
+s1: Start -> Add .               {$}
+    Add   -> Add . "+" Factor    {$}
+
+-- What is expected after this rule?
+   Entirely depends on how we got to this state right?
+   This is not a property of the itemset ...
+s2: Add   -> Factor .            {$, 
+
+.....
+
+Since this "lookahead" thing above is confusing, let's attempt to fix conflicts with what we have.
+
+
+-- In state zero, I wonder if there are any Reduce choices anyway?
+   Looking back I don't think there are ...
+s0:  Start  -> . Add                
+    Add    -> . Add "+" Factor      
+    Add    -> . Factor              
+    Factor -> . Factor "*" Term     
+    Factor -> . Term                
+    Term   -> . "(" Add ")"         
+    Term   -> . name                
+    Term   -> . int                 
+
+Actions:
+    Add:    Shift 1
+    Factor: Shift 2
+    Term:   Shift 3
+    "(":    Shift 4
+    name:   Shift 5
+    int:    Shift 6
+
+s1:  Start -> Add .
+    Add   -> Add . "+" Factor
+
+Actions:
+    "$":  Reduce 1 Start
+    "+":  Shift 7
+    default:  Error (do not allow anything after Start)
+
+-- Here, if going from the itemset only, we have "$" and "*".
+   I know this is incorrect, because there is often something else after an Add.
+   The "something else" could be thought of as the "global" FOLLOW set (unless we start encoding where this state could come from).
+
+According to the below link, SLR has a global FOLLOW set, while LR carries into each state a relevant FOLLOW set (hence ending up with more states).
+https://www.cs.wustl.edu/~cytron/cse431/Current/Tutorial/part4.pdf
+Looking at the FOLLOW sets "falling into" this set (still ignoring which *rule* this comes from -- FOLLOW(0, Add) == {01, "+", ")"}, but the ")" comes from Term and doesn't lead to this state).
+There is even clearer statement of this in the below document:
+https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/110%20LR%20and%20SLR%20Parsing.pdf
+From s0: 
+
+s2:  Add   -> Factor .           {$, "+", ")"}
+    Factor -> Factor . "*" Term  {"*"}
+
+Actions:
+    "$":  Reduce 1 Add
+    "+":  Reduce 1 Add
+    ")":  Reduce 1 Add
+    "*":  Shift 8
+    default:  Error
+
+s3:  Factor -> Term .   
+
+Actions:
+          Reduce 1 Factor
+
+s4:  Term   -> "(" . Add ")"
+    Add    -> . Add "+" Factor
+    Add    -> . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+Actions:
+    Add:     Shift 9
+    Factor:  Shift 2
+    Term:    Shift 3
+    "(":     Shift 4
+    name:    Shift 5
+    int:     Shift 6
+
+
+-----------------------------------------------
+Going with the SLR approach first (now that I know these are two different approaches):
+doing this mostly because I believe those are the states that I created earlier.
+
+
+s0:  Start  -> . Add                
+    Add    -> . Add "+" Factor      
+    Add    -> . Factor              
+    Factor -> . Factor "*" Term     
+    Factor -> . Term                
+    Term   -> . "(" Add ")"         
+    Term   -> . name                
+    Term   -> . int                 
+
+Actions:
+    Add:    Shift 1
+    Factor: Shift 2
+    Term:   Shift 3
+    "(":    Shift 4
+    name:   Shift 5
+    int:    Shift 6
+    
+s1:  Start -> Add .
+    Add   -> Add . "+" Factor
+
+Actions:
+    "$":  Reduce 1 Start
+    "+":  Shift 7
+    any:  Error
+
+s2:  Add   -> Factor .
+    Factor -> Factor . "*" Term
+
+Actions:
+    "$":  Reduce 1 Add
+    "+":  Reduce 1 Add
+    ")":  Reduce 1 Add
+    "*":  Shift 8
+    any:  Error
+
+s3:  Factor -> Term .
+
+Actions:
+    "$":  Reduce 1 Factor
+    "*":  Reduce 1 Factor
+    "+":  Reduce 1 Factor
+    ")":  Reduce 1 Factor
+    any:  Error
+
+s4:  Term   -> "(" . Add ")"
+    Add    -> . Add "+" Factor
+    Add    -> . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+Actions:
+    Add:     Shift 9
+    Factor:  Shift 2
+    Term:    Shift 3
+    "(":     Shift 4
+    name:    Shift 5
+    int:     Shift 6
+    
+s5:  Term -> name .
+
+Actions:
+     "$":    Reduce 1 Term
+     "+":    Reduce 1 Term
+     "*":    Reduce 1 Term
+     ")":    Reduce 1 Term
+     any:    Error
+
+s6:  Term -> int .
+
+Actions:
+     "$":    Reduce 1 Term
+     "+":    Reduce 1 Term
+     "*":    Reduce 1 Term
+     ")":    Reduce 1 Term
+     any:    Error
+
+s7:  Add -> Add "+" . Factor
+    Factor -> . Factor "*" Term
+    Factor -> . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+Actions:
+    Factor:  Shift 11
+    Term :   Shift 3
+    "(":     Shift 4
+    name:    Shift 5
+    int:     Shift 6
+
+s8:  Factor -> Factor "*" . Term
+    Term   -> . "(" Add ")"
+    Term   -> . name
+    Term   -> . int
+
+Actions:
+    Term: Shift 10
+    "(":     Shift 4
+    name:    Shift 5
+    int:     Shift 6
+
+s9:  Term  -> "(" Add . ")"
+    Add   -> Add . "+" Factor
+
+Actions:
+    ")":  Shift 12
+    "+":  Shift 7
+
+s10: Factor -> Factor "*" Term .
+
+Actions:
+    "$":  Reduce 3 Factor
+    "*":  Reduce 3 Factor
+    "+":  Reduce 3 Factor
+    ")":  Reduce 3 Factor
+    any:  Error
+
+s11: Add -> Add "+" Factor .
+     Factor -> Factor . "*" Term
+
+Actions:
+     "$"  Reduce 3 Add
+     "+"  Reduce 3 Add
+     ")"  Reduce 3 Add
+     "*": Shift 8
+     any: Error
+
+s12: Term  -> "(" Add ")" .
+
+Actions:
+     "$":    Reduce 3 Term
+     "+":    Reduce 3 Term
+     "*":    Reduce 3 Term
+     ")":    Reduce 3 Term
+     any:    Error
 
 
