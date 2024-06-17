@@ -1,33 +1,44 @@
+import pprint
+
 class State:
     def __init__(self):
         self.stack = []
+        self.forest = []
         self.top = 0
 
-def advance(st, next_symbol):
-    while action_table[st.top][next_symbol](st):
+def advance(st, next_symbol, value):
+    while action_table[st.top][next_symbol](st, value):
         pass
 
 def shift(to):
-    def _shift_(st):
-        print('shift {}'.format(to))
+    def _shift_(st, value):
+        # print('shift {}'.format(to))
         st.stack.append(st.top)
+        st.forest.append(value)
         st.top = to
         return False
     return _shift_
 
 def red(count, symbol):
-    def _red_(st):
+    name = symbol
+    def _red_(st, _):
+        args = []
         for _ in range(count):
             st.top = st.stack.pop()
-        print('reduce {}'.format(symbol))
-        action_table[st.top][symbol](st)
+            args.append(st.forest.pop())
+        args.append(':' + name)
+        args.reverse()
+        # print('reduce {}'.format(symbol))
+        action_table[st.top][symbol](st, args)
         return True
     return _red_
 
 def accept():
-    def _accept_(st):
+    def _accept_(st, _):
         st.top = st.stack.pop()
-        print('accepted')
+        item = st.forest.pop()
+        print('accepted: ', end='')
+        pprint.pprint(item)
         return False
     return _accept_
 
@@ -115,30 +126,30 @@ action_table = [
 if __name__ == '__main__':
     print('\nNext\n\n')
     st = State()
-    advance(st, '(')
-    advance(st, 'name')
-    advance(st, '+')
-    advance(st, 'int')
-    advance(st, ')')
-    advance(st, '$')
+    advance(st, '(', '(')
+    advance(st, 'name', 'x')
+    advance(st, '+', '+')
+    advance(st, 'int', '10')
+    advance(st, ')', ')')
+    advance(st, '$', '$')
 
     print('\nNext\n\n')
     st = State()
-    advance(st, 'name')
-    advance(st, '+')
-    advance(st, 'int')
-    advance(st, '+')
-    advance(st, 'int')
-    advance(st, '*')
-    advance(st, 'name')
-    advance(st, '$')
+    advance(st, 'name', 'x')
+    advance(st, '+', '+')
+    advance(st, 'int', '13')
+    advance(st, '+', '+')
+    advance(st, 'int', '8')
+    advance(st, '*', '*')
+    advance(st, 'name', 'y')
+    advance(st, '$', '$')
 
     print('\nNext\n\n')
     st = State()
-    advance(st, '(')
-    advance(st, 'name')
-    advance(st, '+')
-    advance(st, 'int')
-    advance(st, '+')
-    advance(st, 'int')
-    advance(st, '$')
+    advance(st, '(', '(')
+    advance(st, 'name', 'z')
+    advance(st, '+', '+')
+    advance(st, 'int', '9')
+    advance(st, '+', '+')
+    advance(st, 'int', '10')
+    advance(st, '$', '$')
