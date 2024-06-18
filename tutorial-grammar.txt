@@ -9,12 +9,12 @@
 
 Start  = Add
 
-Add    = Add "+" Factor
+Add    = Add + Factor
 Add    = Factor
 
-Factor = Factor "*" Term
+Factor = Factor * Term
 Factor = Term
 
-Term   = "(" Add ")"
+Term   = ( Add )
 Term   = name
 Term   = int
