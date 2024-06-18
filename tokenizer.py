@@ -27,6 +27,9 @@ def st_0(tok, ch):
                       (tok.column, tok.line), (tok.column+1, tok.line))
     elif ch == " " or ch == "\n" or ch == "\t" or ch == "\r":
         pass
+    elif ch == '':
+        tok.on_output('$', '',
+                      (tok.column, tok.line), (tok.column+1, tok.line))
     else:
         tok.on_output('error', ch,
             (tok.column, tok.line), (tok.column+1, tok.line))

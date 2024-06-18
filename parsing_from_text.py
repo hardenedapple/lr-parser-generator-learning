@@ -13,10 +13,9 @@ def parse_from_string(inp):
     tok = tokenizer.Tokenizer(do_advance)
     for ch in inp:
         tokenizer.tokenize(tok, ch)
-    manual_tables.advance(st, '$', '')
+    tokenizer.tokenize(tok, '')
     assert(st.accepted_expressions)
     return st.accepted_expressions.pop()
-
 
 if __name__ == '__main__':
     import default_log_arg
