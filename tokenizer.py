@@ -1,3 +1,7 @@
+'''
+Tokens in the grammar that I'm handling:
+    (, ), +, *, integers, names
+'''
 class Tokenizer:
     def __init__(self, on_output):
         self.on_output = on_output
@@ -17,6 +21,10 @@ def st_0(tok, ch):
         tok.pos = (tok.column, tok.line)
         tok.inp.append(ch)
         tok.state = 'st_word'
+    elif ch in ('+', '*', '(', ')'):
+        # Single character tokens -- no matter what is around them
+        tok.on_output(ch, ch,
+                      (tok.column, tok.line), (tok.column+1, tok.line))
     elif ch == " " or ch == "\n" or ch == "\t" or ch == "\r":
         pass
     else:
@@ -27,7 +35,7 @@ def st_word(tok, ch):
     if ch.isalpha() or ch == "_" or ch.isdigit():
         tok.inp.append(ch)
     else:
-        tok.on_output('word', "".join(tok.inp),
+        tok.on_output('name', "".join(tok.inp),
             tok.pos, (tok.column+1, tok.line))
         tok.inp = []
         tok.state = 'st_0'
@@ -42,7 +50,7 @@ def st_digits(tok, ch):
                       ' char'.format(''.join(tok.inp)), ch,
                       (tok.column, tok.line), (tok.column+1, tok.line))
     else:
-        tok.on_output('digits', "".join(tok.inp),
+        tok.on_output('int', "".join(tok.inp),
             tok.pos, (tok.column+1, tok.line))
     tok.inp = []
     tok.state = 'st_0'

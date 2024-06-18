@@ -1,7 +1,9 @@
 import pprint
-
+import logging
+logger = logging.getLogger(__name__)
 class State:
     def __init__(self):
+        self.accepted_expressions = []
         self.stack = []
         self.forest = []
         self.top = 0
@@ -12,7 +14,7 @@ def advance(st, next_symbol, value):
 
 def shift(to):
     def _shift_(st, value):
-        # print('shift {}'.format(to))
+        logger.debug('shift {}'.format(to))
         st.stack.append(st.top)
         st.forest.append(value)
         st.top = to
@@ -28,7 +30,7 @@ def red(count, symbol):
             args.append(st.forest.pop())
         args.append(':' + name)
         args.reverse()
-        # print('reduce {}'.format(symbol))
+        logger.debug('reduce {}'.format(symbol))
         action_table[st.top][symbol](st, args)
         return True
     return _red_
@@ -37,8 +39,9 @@ def accept():
     def _accept_(st, _):
         st.top = st.stack.pop()
         item = st.forest.pop()
-        print('accepted: ', end='')
-        pprint.pprint(item)
+        st.accepted_expressions.append(item)
+        logger.debug('accepted')
+        logger.debug(pprint.pformat(item))
         return False
     return _accept_
 
@@ -124,6 +127,8 @@ action_table = [
         }]
 
 if __name__ == '__main__':
+    import default_log_arg
+    default_log_arg.do_default_logarg()
     print('\nNext\n\n')
     st = State()
     advance(st, '(', '(')
