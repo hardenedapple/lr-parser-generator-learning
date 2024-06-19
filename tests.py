@@ -2,6 +2,7 @@ import unittest
 import operator
 import random
 from parsing_from_text import parse_from_string
+from parse_grammar import get_rules
 import itertools as itt
 import manual_tables
 import produce_sentences
@@ -30,6 +31,10 @@ def merge_sentence_as_string(sent):
     return ''.join(flat_zip(all_tokens, random_spaces))
 
 class TestManualExpressions(unittest.TestCase):
+    # Probably not the best way to test because I'm testing that the hard-coded
+    # rules below match the hard-coded decision tables in manual_tables.
+    # However, since the hard-coded decision tables are hard-coded there's not
+    # much else I can do except write down what I think I wrote.
     test_rules = '''
     Start  = Add
 
@@ -53,7 +58,7 @@ class TestManualExpressions(unittest.TestCase):
         known_ret = [':Add', [':Factor', [':Term', 'x']]]
         self.assertEqual(parse_from_string('x'), known_ret)
     def test_parser_accepts(self):
-        rules = produce_sentences.get_rules(self.test_rules)
+        rules = get_rules(self.test_rules)
         all_keys = list(rules.keys())
         for _ in range(1000):
             gen_key = random.choice(all_keys)

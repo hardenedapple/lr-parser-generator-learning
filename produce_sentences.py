@@ -1,30 +1,10 @@
-import collections
 import copy
 import itertools as itt
 import random
 import string
 import logging
+from parse_grammar import get_rules
 logger = logging.getLogger(__name__)
-
-def split_strip(line):
-    return [x.strip() for x in line.split()]
-
-def single_rule(line):
-    k, r = line.split('=')
-    return (k.strip(), split_strip(r))
-
-def get_rules(text):
-    ret = collections.defaultdict(list)
-    for line in text.splitlines():
-        if line.startswith('//'):
-            continue
-        line = line.strip()
-        if not line:
-            continue
-        k, r = single_rule(line)
-        assert(r)
-        ret[k].append(r)
-    return ret
 
 def terminal(sym, rules):
     return sym not in rules

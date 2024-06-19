@@ -1,28 +1,12 @@
 import sys
 import enum
-import collections
+from parse_grammar import get_rules
 import copy
 import itertools as itt
 
-def split_strip(line):
-    return [x.strip() for x in line.split()]
-
-def single_rule(line):
-    k, r = line.split('=')
-    return (k.strip(), split_strip(r))
-
-def get_rules(text):
-    ret = collections.defaultdict(list)
-    for line in text.splitlines():
-        if line.startswith('//'):
-            continue
-        line = line.strip()
-        if not line:
-            continue
-        k, r = single_rule(line)
-        assert(r)
-        ret[k].append(r)
-    return ret
+# TODO
+#   - Ensure we can handle possibly empty rules
+#     (I.e. if a rule could expand to nothing, do we handle that).
 
 class SpecialTok(enum.Enum):
     EOL = 'EOL'
@@ -148,7 +132,6 @@ class TableSet:
             if entry.next_token() == seen_token:
                 alt_storage.add()
     
-
 def gen_table(rules, start_name):
     start_token = TableEntry.from_rule_and_name(rules, start_name)
     print(start_token)
