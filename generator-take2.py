@@ -126,7 +126,7 @@ def first(rules, nullable):
 ####### FOLLOW set
 def follow(rules, first, nullable):
     SymStore = collections.namedtuple('SymStore', ['terminals', 'follow'])
-    follow_items = collections.defaultdict(lambda: SymStore(set(), set()))
+    follow_items = {key: SymStore(set(), set()) for key in rules}
     for key, val in rules.items():
         for gen in val:
             update_list = []
@@ -137,19 +137,21 @@ def follow(rules, first, nullable):
                         item.terminals.add(sym)
                     else:
                         item.terminals.update(first[sym])
-                if sym not in nullable:
+                if terminal(sym):
+                    update_list = []
+                elif sym not in nullable:
                     update_list = [sym]
                 else:
                     update_list.append(sym)
-            # Above loop handles all up to last element.
+            # Above loop handles all up to last element, this handles
+            # everything "active" at end of rule.
             for s in update_list:
                 item = follow_items[s]
                 item.follow.add(key)
     def update_follow(current_follow):
         logger.debug('update_follow: ' + str(current_follow))
         ret = False
-        for key in rules:
-            this = current_follow[key]
+        for key, this in current_follow.items():
             for chain in this.follow:
                 that = current_follow[chain]
                 if not this.terminals.issuperset(that.terminals):
