@@ -3,6 +3,9 @@ import enum
 from parse_grammar import get_rules
 import copy
 import itertools as itt
+import collections
+import logging
+logger = logging.getLogger(__name__)
 
 # TODO
 #   - Ensure we can handle possibly empty rules
@@ -144,10 +147,16 @@ def gen_table(rules, start_name):
     #   - 
 
 if __name__ == '__main__':
+    import default_log_arg
+    default_log_arg.do_default_logarg()
     with open('tutorial-grammar.txt') as infile:
         text = infile.read()
     all_rules = get_rules(text)
+    logger.info('Initial rules: ' + str(all_rules))
     nonterminals = all_nonterminals(all_rules)
+    logger.info('Nonterminals: ' + str(nonterminals))
     terminal = make_terminal_func(nonterminals)
     FIRST = first(all_rules)
+    logger.info('FIRST: ' + str(FIRST))
     FOLLOW = follow(all_rules)
+    logger.info('FOLLOW: ' + str(FOLLOW))
