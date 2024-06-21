@@ -53,7 +53,9 @@
 #     with SLR, independent).
 
 from parse_grammar import get_rules
+from dataclasses import dataclass
 import collections
+import itertools as itt
 import logging
 logger = logging.getLogger(__name__)
 
@@ -160,8 +162,118 @@ def follow(rules, first, nullable):
         return ret
     finalised_follow = transitive_closure_mutable(follow_items, update_follow)
     return {k: v.terminals for k, v in finalised_follow.items()}
+    
+####### Itemsets
+# Structure of an SLR itemset is:
+#   - Sequence of items.
+# Where each item is:
+#   - Rule plus position
+@dataclass(frozen=True)
+class Prediction:
+    key: str
+    gen: tuple[str, ...]
+    idx: int
+    def next_sym(self):
+        return self.gen[self.idx] if self.idx < len(self.gen) else None
+    def shifted(self):
+        assert(self.idx < len(self.gen))
+        return Prediction(self.key, self.gen, self.idx+1)
+    def __str__(self):
+        return '{} -> {} . {}'.format(self.key,
+                                      ' '.join(self.gen[:self.idx]),
+                                      ' '.join(self.gen[self.idx:]))
+@dataclass(frozen=True)
+class ItemSet:
+    predictions: frozenset[Prediction, ...]
+    @classmethod
+    def from_iterable(cls, it):
+        return cls(frozenset(it))
+    def __str__(self):
+        return '\n'.join(sorted(str(x) for x in self.predictions))
+    def __iter__(self):
+        return iter(self.predictions)
+
+def left_pad(text, padding):
+    return '\n'.join(padding+x for x in text.splitlines())
+
+class StateStore:
+    def __init__(self, mapping):
+        self.state_to_num = mapping
+        self.num_to_state = {v: k for k, v in mapping.items()}
+        assert(set(self.num_to_state.keys()) == set(range(len(mapping))))
+    def __str__(self):
+        chunks = [list() for _ in self.num_to_state]
+        for k, v in self.num_to_state.items():
+            chunks[k].append('{}:'.format(k))
+            chunks[k].append(left_pad(str(v), '    '))
+        return '\n'.join(itt.chain.from_iterable(chunks))
+
+def extend_predictions(rules, predictions):
+    '''Expand a kernel of an itemset into a full itemset.
+    NOTE: This can lead to duplicates of the items in the kernel, but we assume
+    that's handled by ItemSet making things unique.'''
+    logger.debug('extending: ' + str(predictions))
+    tohandle = [p.next_sym() for p in predictions]
+    seen = set()
+    while tohandle:
+        logger.debug('tohandle:' + str(tohandle))
+        logger.debug('seen:    ' + str(seen))
+        sym = tohandle.pop()
+        if sym in seen or sym is None:
+            continue
+        seen.add(sym)
+        extra = [Prediction(sym, tuple(x), 0) for x in rules[sym]]
+        predictions.extend(extra)
+        tohandle.extend(x.next_sym() for x in extra)
+    return predictions
+
+def next_kernels(predictions):
+    ret = collections.defaultdict(list)
+    for p in predictions:
+        sym = p.next_sym()
+        if sym is None:
+            continue
+        ret[sym].append(p.shifted())
+    return ret.values()
+
+# N.b. I'm curious whether there is any way to determine where the start is automatically
+# Thoughts:
+#   - Hash on kernels rather than entire states?
+#     Should do essentially the same thing, but could save in "seen"
+#     before expanding.
+#   - Which state "shifts" to which state on which syms would be natural to
+#     calculate here.
+#   - Which state "reduces" on a terminal seems natural to record in
+#     "next_kernels" -- though that would need the FOLLOW map passed in.
+def itemlists(rules, start):
+    # Approach:
+    #  1) Expand all implicit states from the beginning of start.
+    #     - This gives the first itemlist.
+    #  2) For each symbol in any "next" position:
+    #     - Create the kernel of a new itemset.
+    #     - Expand all implicit states.
+    predictions = [Prediction(start, tuple(x), 0) for x in rules[start]]
+    extend_predictions(rules, predictions)
+    start = ItemSet.from_iterable(predictions)
+    counter = 0
+    seen = {}
+    tohandle = [start]
+    while tohandle:
+        s = tohandle.pop()
+        if s in seen:
+            continue
+        seen[s] = counter
+        counter += 1
+        for kernel in next_kernels(s.predictions):
+            extend_predictions(rules, kernel)
+            toadd = ItemSet.from_iterable(kernel)
+            if toadd not in seen:
+                tohandle.append(toadd)
+    return StateStore(seen)
+    
 
 if __name__ == '__main__':
+    import pprint
     import default_log_arg
     default_log_arg.do_default_logarg()
     with open('tutorial-grammar.txt') as infile:
@@ -177,3 +289,6 @@ if __name__ == '__main__':
     logger.info('FIRST: ' + str(FIRST))
     FOLLOW = follow(all_rules, FIRST, nullable)
     logger.info('FOLLOW: ' + str(FOLLOW))
+    states = itemlists(all_rules, 'Start')
+    logger.info('States: ' + str(states))
+    
