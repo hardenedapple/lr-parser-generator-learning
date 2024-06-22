@@ -53,6 +53,7 @@
 #     with SLR, independent).
 
 from parse_grammar import get_rules
+import enum
 from dataclasses import dataclass
 import collections
 import itertools as itt
@@ -126,9 +127,11 @@ def first(rules, nullable):
     return {key: val.terminals for key, val in finalised_first.items()}
 
 ####### FOLLOW set
-def follow(rules, first, nullable):
+def follow(rules, first, nullable, known):
     SymStore = collections.namedtuple('SymStore', ['terminals', 'follow'])
     follow_items = {key: SymStore(set(), set()) for key in rules}
+    for k, v in known.items():
+        follow_items[k].terminals.update(v)
     for key, val in rules.items():
         for gen in val:
             update_list = []
@@ -197,10 +200,11 @@ def left_pad(text, padding):
     return '\n'.join(padding+x for x in text.splitlines())
 
 class StateStore:
-    def __init__(self, mapping, shift_actions):
+    def __init__(self, mapping, reduction_actions, shift_actions):
         self.state_to_num = mapping
         self.num_to_state = {v: k for k, v in mapping.items()}
         self.shift_actions = shift_actions
+        self.reduction_actions = reduction_actions
         assert(set(self.num_to_state.keys()) == set(range(len(mapping))))
     def __str__(self):
         chunks = [list() for _ in self.num_to_state]
@@ -209,9 +213,13 @@ class StateStore:
             chunks[k].append(left_pad(str(v), '    '))
             if self.shift_actions[v]:
                 chunks[k].append('  Shifts:')
-            for sym, next_state in self.shift_actions[v].items():
-                chunks[k].append('    {}:  shift({})'.format(
-                        sym, self.state_to_num[next_state]))
+                for sym, next_state in self.shift_actions[v].items():
+                    chunks[k].append('    {}:  shift({})'.format(
+                            sym, self.state_to_num[next_state]))
+            if self.reduction_actions[v]:
+                chunks[k].append('  Reductions:')
+                for sym, pred in self.reduction_actions[v].items():
+                    chunks[k].append('    {}:  reduce({})'.format(sym, pred))
         return '\n'.join(itt.chain.from_iterable(chunks))
 
 def extend_predictions(rules, predictions):
@@ -233,14 +241,21 @@ def extend_predictions(rules, predictions):
         tohandle.extend(x.next_sym() for x in extra)
     return predictions
 
-def next_kernels(predictions):
+def actions_for(predictions):
     ret = collections.defaultdict(list)
+    reductions = {}
     for p in predictions:
         sym = p.next_sym()
         if sym is None:
+            for f in FOLLOW[p.key]:
+                # Early assertion error on shift/reduce conflict.
+                assert(f not in ret)
+                # Assertion error on reduce/reduce conflict.
+                assert(f not in reductions)
+                reductions[f] = p
             continue
         ret[sym].append(p.shifted())
-    return ret
+    return reductions, ret
 
 # N.b. I'm curious whether there is any way to determine where the start is automatically
 # Thoughts:
@@ -264,22 +279,26 @@ def itemlists(rules, start):
     counter = 0
     seen = {}
     tohandle = [start]
-    actions = {}
+    shift_actions = {}
+    reduction_actions = {}
     while tohandle:
         s = tohandle.pop()
         if s in seen:
             continue
         seen[s] = counter
         counter += 1
-        acts = next_kernels(s.predictions)
-        for sym in acts:
-            extend_predictions(rules, acts[sym])
-            toadd = ItemSet.from_iterable(acts[sym])
-            acts[sym] = toadd
+        reductions, shifts = actions_for(s.predictions)
+        for sym in shifts:
+            extend_predictions(rules, shifts[sym])
+            toadd = ItemSet.from_iterable(shifts[sym])
+            shifts[sym] = toadd
             if toadd not in seen:
                 tohandle.append(toadd)
-        actions[s] = acts
-    return StateStore(seen, actions)
+        # Assertion error on reduce/shift conflict.
+        assert(len(reductions) + len(shifts)
+                == len(set(reductions.keys()).union(set(shifts.keys()))))
+        reduction_actions[s], shift_actions[s] = reductions, shifts
+    return StateStore(seen, reduction_actions, shift_actions)
     
 
 if __name__ == '__main__':
@@ -297,7 +316,7 @@ if __name__ == '__main__':
     terminal = make_terminal_func(nonterminals)
     FIRST = first(all_rules, nullable)
     logger.info('FIRST: ' + str(FIRST))
-    FOLLOW = follow(all_rules, FIRST, nullable)
+    FOLLOW = follow(all_rules, FIRST, nullable, {'Start': ['EOF']})
     logger.info('FOLLOW: ' + str(FOLLOW))
     states = itemlists(all_rules, 'Start')
     logger.info('States: ' + str(states))
