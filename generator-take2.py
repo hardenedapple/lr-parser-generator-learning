@@ -241,13 +241,13 @@ def extend_predictions(rules, predictions):
         tohandle.extend(x.next_sym() for x in extra)
     return predictions
 
-def actions_for(predictions):
+def actions_for(predictions, follow):
     ret = collections.defaultdict(list)
     reductions = {}
     for p in predictions:
         sym = p.next_sym()
         if sym is None:
-            for f in FOLLOW[p.key]:
+            for f in follow[p.key]:
                 # Early assertion error on shift/reduce conflict.
                 assert(f not in ret)
                 # Assertion error on reduce/reduce conflict.
@@ -266,7 +266,7 @@ def actions_for(predictions):
 #     calculate here.
 #   - Which state "reduces" on a terminal seems natural to record in
 #     "next_kernels" -- though that would need the FOLLOW map passed in.
-def itemlists(rules, start):
+def itemlists(rules, start, follow):
     # Approach:
     #  1) Expand all implicit states from the beginning of start.
     #     - This gives the first itemlist.
@@ -287,7 +287,7 @@ def itemlists(rules, start):
             continue
         seen[s] = counter
         counter += 1
-        reductions, shifts = actions_for(s.predictions)
+        reductions, shifts = actions_for(s.predictions, follow)
         for sym in shifts:
             extend_predictions(rules, shifts[sym])
             toadd = ItemSet.from_iterable(shifts[sym])
@@ -318,6 +318,6 @@ if __name__ == '__main__':
     logger.info('FIRST: ' + str(FIRST))
     FOLLOW = follow(all_rules, FIRST, nullable, {'Start': ['EOF']})
     logger.info('FOLLOW: ' + str(FOLLOW))
-    states = itemlists(all_rules, 'Start')
+    states = itemlists(all_rules, 'Start', FOLLOW)
     logger.info('States: ' + str(states))
     
