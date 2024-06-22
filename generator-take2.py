@@ -53,6 +53,7 @@
 #     with SLR, independent).
 
 from parse_grammar import get_rules
+import manual_tables
 import enum
 from dataclasses import dataclass
 import collections
@@ -200,11 +201,12 @@ def left_pad(text, padding):
     return '\n'.join(padding+x for x in text.splitlines())
 
 class StateStore:
-    def __init__(self, mapping, reduction_actions, shift_actions):
+    def __init__(self, mapping, reduction_actions, shift_actions, accept_actions):
         self.state_to_num = mapping
         self.num_to_state = {v: k for k, v in mapping.items()}
         self.shift_actions = shift_actions
         self.reduction_actions = reduction_actions
+        self.accept_actions = accept_actions
         assert(set(self.num_to_state.keys()) == set(range(len(mapping))))
     def __str__(self):
         chunks = [list() for _ in self.num_to_state]
@@ -220,6 +222,10 @@ class StateStore:
                 chunks[k].append('  Reductions:')
                 for sym, pred in self.reduction_actions[v].items():
                     chunks[k].append('    {}:  reduce({})'.format(sym, pred))
+            if self.accept_actions[v]:
+                chunks[k].append('  Accept on:')
+                for sym in self.accept_actions[v]:
+                    chunks[k].append('    {}'.format(sym))
         return '\n'.join(itt.chain.from_iterable(chunks))
 
 def extend_predictions(rules, predictions):
@@ -241,9 +247,10 @@ def extend_predictions(rules, predictions):
         tohandle.extend(x.next_sym() for x in extra)
     return predictions
 
-def actions_for(predictions, follow):
+def actions_for(predictions, root_term, follow):
     ret = collections.defaultdict(list)
     reductions = {}
+    accepts = set()
     for p in predictions:
         sym = p.next_sym()
         if sym is None:
@@ -252,28 +259,28 @@ def actions_for(predictions, follow):
                 assert(f not in ret)
                 # Assertion error on reduce/reduce conflict.
                 assert(f not in reductions)
-                reductions[f] = p
+                if p.key == root_term:
+                    accepts.add(f)
+                else:
+                    reductions[f] = p
             continue
         ret[sym].append(p.shifted())
-    return reductions, ret
+    return reductions, ret, accepts
 
-# N.b. I'm curious whether there is any way to determine where the start is automatically
+# N.b. I'm curious whether there is any way to determine where the start is
+# automatically.
 # Thoughts:
 #   - Hash on kernels rather than entire states?
 #     Should do essentially the same thing, but could save in "seen"
-#     before expanding.
-#   - Which state "shifts" to which state on which syms would be natural to
-#     calculate here.
-#   - Which state "reduces" on a terminal seems natural to record in
-#     "next_kernels" -- though that would need the FOLLOW map passed in.
-def itemlists(rules, start, follow):
+#     before expanding (saving a bit of work).
+def itemlists(rules, root_term, follow):
     # Approach:
-    #  1) Expand all implicit states from the beginning of start.
+    #  1) Expand all implicit states from the beginning of root_term.
     #     - This gives the first itemlist.
     #  2) For each symbol in any "next" position:
     #     - Create the kernel of a new itemset.
     #     - Expand all implicit states.
-    predictions = [Prediction(start, tuple(x), 0) for x in rules[start]]
+    predictions = [Prediction(root_term, tuple(x), 0) for x in rules[root_term]]
     extend_predictions(rules, predictions)
     start = ItemSet.from_iterable(predictions)
     counter = 0
@@ -281,13 +288,14 @@ def itemlists(rules, start, follow):
     tohandle = [start]
     shift_actions = {}
     reduction_actions = {}
+    accept_actions = {}
     while tohandle:
         s = tohandle.pop()
         if s in seen:
             continue
         seen[s] = counter
         counter += 1
-        reductions, shifts = actions_for(s.predictions, follow)
+        reductions, shifts, accepts = actions_for(s.predictions, root_term, follow)
         for sym in shifts:
             extend_predictions(rules, shifts[sym])
             toadd = ItemSet.from_iterable(shifts[sym])
@@ -295,11 +303,31 @@ def itemlists(rules, start, follow):
             if toadd not in seen:
                 tohandle.append(toadd)
         # Assertion error on reduce/shift conflict.
-        assert(len(reductions) + len(shifts)
-                == len(set(reductions.keys()).union(set(shifts.keys()))))
-        reduction_actions[s], shift_actions[s] = reductions, shifts
-    return StateStore(seen, reduction_actions, shift_actions)
-    
+        assert(not any(x in reductions for x in shifts))
+        assert(not any(x in reductions for x in accepts))
+        assert(not any(y in shifts for y in accepts))
+        reduction_actions[s], shift_actions[s], accept_actions[s] = (
+                reductions, shifts, accepts)
+    return StateStore(seen, reduction_actions, shift_actions, accept_actions)
+
+######### Using that action table to parse.
+def convert_to_action_table(state_store, root_term):
+    action_tables = [None]*len(state_store.num_to_state)
+    for k, v in state_store.num_to_state.items():
+        shifts = {sym: manual_tables.shift(state_store.state_to_num[next_state])
+                  for sym, next_state in state_store.shift_actions[v].items()}
+        reductions = {sym: manual_tables.red(len(p.gen), p.key)
+                        for sym, p in state_store.reduction_actions[v].items()}
+        accepts = {sym: manual_tables.accept() for sym in state_store.accept_actions[v]}
+        assert(not any(x in shifts for x in reductions))
+        assert(not any(x in accepts for x in reductions))
+        assert(not any(y in shifts for y in accepts))
+        actions = shifts
+        actions.update(reductions)
+        actions.update(accepts)
+        action_tables[k] = actions
+    assert(None not in action_tables)
+    return action_tables
 
 if __name__ == '__main__':
     import pprint
@@ -316,8 +344,13 @@ if __name__ == '__main__':
     terminal = make_terminal_func(nonterminals)
     FIRST = first(all_rules, nullable)
     logger.info('FIRST: ' + str(FIRST))
-    FOLLOW = follow(all_rules, FIRST, nullable, {'Start': ['EOF']})
+    FOLLOW = follow(all_rules, FIRST, nullable, {'Start': ['$']})
     logger.info('FOLLOW: ' + str(FOLLOW))
     states = itemlists(all_rules, 'Start', FOLLOW)
     logger.info('States: ' + str(states))
+    manual_tables.action_table = convert_to_action_table(states, 'Start')
+    logger.info('action_tables: ' + pprint.pformat(manual_tables.action_table))
+    import parsing_from_text
+    parsed_expression = parsing_from_text.parse_from_string('3+4')
+    pprint.pprint(parsed_expression)
     
