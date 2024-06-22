@@ -197,15 +197,21 @@ def left_pad(text, padding):
     return '\n'.join(padding+x for x in text.splitlines())
 
 class StateStore:
-    def __init__(self, mapping):
+    def __init__(self, mapping, shift_actions):
         self.state_to_num = mapping
         self.num_to_state = {v: k for k, v in mapping.items()}
+        self.shift_actions = shift_actions
         assert(set(self.num_to_state.keys()) == set(range(len(mapping))))
     def __str__(self):
         chunks = [list() for _ in self.num_to_state]
         for k, v in self.num_to_state.items():
             chunks[k].append('{}:'.format(k))
             chunks[k].append(left_pad(str(v), '    '))
+            if self.shift_actions[v]:
+                chunks[k].append('  Shifts:')
+            for sym, next_state in self.shift_actions[v].items():
+                chunks[k].append('    {}:  shift({})'.format(
+                        sym, self.state_to_num[next_state]))
         return '\n'.join(itt.chain.from_iterable(chunks))
 
 def extend_predictions(rules, predictions):
@@ -234,7 +240,7 @@ def next_kernels(predictions):
         if sym is None:
             continue
         ret[sym].append(p.shifted())
-    return ret.values()
+    return ret
 
 # N.b. I'm curious whether there is any way to determine where the start is automatically
 # Thoughts:
@@ -258,18 +264,22 @@ def itemlists(rules, start):
     counter = 0
     seen = {}
     tohandle = [start]
+    actions = {}
     while tohandle:
         s = tohandle.pop()
         if s in seen:
             continue
         seen[s] = counter
         counter += 1
-        for kernel in next_kernels(s.predictions):
-            extend_predictions(rules, kernel)
-            toadd = ItemSet.from_iterable(kernel)
+        acts = next_kernels(s.predictions)
+        for sym in acts:
+            extend_predictions(rules, acts[sym])
+            toadd = ItemSet.from_iterable(acts[sym])
+            acts[sym] = toadd
             if toadd not in seen:
                 tohandle.append(toadd)
-    return StateStore(seen)
+        actions[s] = acts
+    return StateStore(seen, actions)
     
 
 if __name__ == '__main__':
