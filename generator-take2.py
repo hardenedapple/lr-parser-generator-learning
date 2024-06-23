@@ -331,6 +331,8 @@ def convert_to_action_table(state_store, root_term):
 
 if __name__ == '__main__':
     import pprint
+    import sys
+    import parsing_from_text
     import default_log_arg
     default_log_arg.do_default_logarg()
     with open('tutorial-grammar.txt') as infile:
@@ -350,7 +352,6 @@ if __name__ == '__main__':
     logger.info('States: ' + str(states))
     manual_tables.action_table = convert_to_action_table(states, 'Start')
     logger.info('action_tables: ' + pprint.pformat(manual_tables.action_table))
-    import parsing_from_text
-    parsed_expression = parsing_from_text.parse_from_string('3+4')
+    parsed_expression = parsing_from_text.parse_from_string(sys.stdin.read())
     pprint.pprint(parsed_expression)
     
