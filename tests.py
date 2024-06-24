@@ -21,14 +21,10 @@ def merge_sentence_as_string(sent):
     def random_choices(spaces):
         while True:
             yield random.choice(spaces)
-    def flat_zip(x, y):
-        for a, b in zip(x, y):
-            yield a
-            yield b
     all_tokens = map(operator.itemgetter(1), sent)
     spaces = (a+b for a,b in itt.product(['', '\n', '\t', ' ', ''], repeat=2))
     random_spaces = random_choices(list(spaces))
-    return ''.join(flat_zip(all_tokens, random_spaces))
+    return ''.join(itt.chain.from_iterable(zip(all_tokens, random_spaces)))
 
 class TestManualExpressions(unittest.TestCase):
     # Probably not the best way to test because I'm testing that the hard-coded
