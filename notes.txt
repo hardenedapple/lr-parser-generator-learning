@@ -523,7 +523,6 @@ Actions:
 
 
 ####################
-TODO:
     - Add minus sign to check that I handle nullable symbols correctly.
       ... The first representation of a minus sign I attempted is left recursive!
       When parsing a Term and I see a '(' or 'name' I can either choose to
@@ -543,6 +542,15 @@ TODO:
           there would always be this choice based on the thought that when
           unambiguous, a nullable symbol is always going to be existing in the
           input, it's just going to sometimes be empty.
+     ... Realised there is a way to implement Minus as a nullable symbol.
+         Still is the problem of getting unnecessary empty :Minus bits in the
+         parse tree, but this is at least a nullable symbol (and hence test)
+         that I would reasonably want in my algebra grammar.
+TODO:
     - Implement canonical LR(1)
-      (Have implemented SLR(1)
+      - Have implemented SLR(1)
+      First would like to find some grammar that is LR(1) but not SLR.
+      Need is that there is a rule that has a conflict when the FOLLOW set
+      includes everything that can follow this symbol, but not when it only
+      has things that could follow this symbol in this context.
     - Parse grammar in order to specify tokenizer.

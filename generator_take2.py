@@ -359,7 +359,7 @@ if __name__ == '__main__':
     import default_log_arg
     default_log_arg.do_default_logarg()
     initialise_actions('tutorial-grammar.txt')
-    logger.info('action_tables: ' + pprint.pformat(action_table))
+    logger.info('action_tables: ' + pprint.pformat(manual_tables.action_table))
     parsed_expression = parsing_from_text.parse_from_string(sys.stdin.read())
     pprint.pprint(parsed_expression)
     
