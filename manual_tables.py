@@ -45,7 +45,7 @@ def accept():
         return False
     return _accept_
 
-action_table = [
+default_action_table = [
         # s0
         {'Add':     shift(1),
         'Factor':   shift(2),
@@ -126,10 +126,18 @@ action_table = [
         ')':        red(3,      'Term'),
         }]
 
+def initialise_actions(alt_actions):
+    global action_table
+    if alt_actions:
+        action_table = alt_actions
+    else:
+        action_table = default_action_table
+
 if __name__ == '__main__':
     import default_log_arg
     default_log_arg.do_default_logarg()
     print('\nNext\n\n')
+    initialise_actions()
     st = State()
     advance(st, '(', '(')
     advance(st, 'name', 'x')

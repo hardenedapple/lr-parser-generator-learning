@@ -329,13 +329,9 @@ def convert_to_action_table(state_store, root_term):
     assert(None not in action_tables)
     return action_tables
 
-if __name__ == '__main__':
-    import pprint
-    import sys
-    import parsing_from_text
-    import default_log_arg
-    default_log_arg.do_default_logarg()
-    with open('tutorial-grammar.txt') as infile:
+def generate_action_tables(grammar_filename):
+    global terminal
+    with open(grammar_filename) as infile:
         text = infile.read()
     all_rules = get_rules(text)
     logger.info('Initial rules: ' + str(all_rules))
@@ -350,8 +346,20 @@ if __name__ == '__main__':
     logger.info('FOLLOW: ' + str(FOLLOW))
     states = itemlists(all_rules, 'Start', FOLLOW)
     logger.info('States: ' + str(states))
-    manual_tables.action_table = convert_to_action_table(states, 'Start')
-    logger.info('action_tables: ' + pprint.pformat(manual_tables.action_table))
+    return convert_to_action_table(states, 'Start')
+
+def initialise_actions(grammar_filename):
+    action_table = generate_action_tables(grammar_filename)
+    manual_tables.initialise_actions(action_table)
+
+if __name__ == '__main__':
+    import pprint
+    import sys
+    import parsing_from_text
+    import default_log_arg
+    default_log_arg.do_default_logarg()
+    initialise_actions('tutorial-grammar.txt')
+    logger.info('action_tables: ' + pprint.pformat(action_table))
     parsed_expression = parsing_from_text.parse_from_string(sys.stdin.read())
     pprint.pprint(parsed_expression)
     
