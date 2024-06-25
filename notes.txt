@@ -522,3 +522,27 @@ Actions:
      any:    Error
 
 
+####################
+TODO:
+    - Add minus sign to check that I handle nullable symbols correctly.
+      ... The first representation of a minus sign I attempted is left recursive!
+      When parsing a Term and I see a '(' or 'name' I can either choose to
+      reduce a Minus sign or to shift with no Minus sign.
+      Rewriting to allow a Minus sign without being left-recursive means I no
+      longer have a nullable symbol.
+      ... What thing could be nullable?
+          - Some optional symbol at the end of a generation?
+            Let's add an optional question mark to the end of a term.
+            That seems to "just work", though I'm a little bothered by the
+            fact it's not something often seen in algebra.
+          Something else slightly annoying about the nullable terminal as I've
+          defined it for the question mark is that it could just as well be
+          defined without a nullable symbol by using multiple rules.  Moreoever
+          doing things without the nullable symbol would mean that we no longer
+          generate empty "QuestionMark" non-terminal parses.  I would guess
+          there would always be this choice based on the thought that when
+          unambiguous, a nullable symbol is always going to be existing in the
+          input, it's just going to sometimes be empty.
+    - Implement canonical LR(1)
+      (Have implemented SLR(1)
+    - Parse grammar in order to specify tokenizer.

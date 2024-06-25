@@ -21,7 +21,7 @@ def st_0(tok, ch):
         tok.pos = (tok.column, tok.line)
         tok.inp.append(ch)
         tok.state = 'st_word'
-    elif ch in ('+', '*', '(', ')'):
+    elif ch in ('+', '*', '(', ')', '-', '?'):
         # Single character tokens -- no matter what is around them
         tok.on_output(ch, ch,
                       (tok.column, tok.line), (tok.column+1, tok.line))

@@ -15,9 +15,13 @@ Add    = Factor
 Factor = Factor * Term
 Factor = Term
 
+Term   = Minus Term
 Term   = ( Add )
-Term   = name
+Term   = name QuestionMark
 Term   = int
 
-Test =
-Test = hello
+
+Minus = -
+
+QuestionMark =
+QuestionMark = ?
