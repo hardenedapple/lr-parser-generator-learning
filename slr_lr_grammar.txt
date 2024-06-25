@@ -1,5 +1,16 @@
-Start = a L e
-Start = b L f
+// When seen 'b' and 'n', are left with the state:
+// B = n . f,  L = n .
+// With SLR we have the follow set of L including 'f', so this is a
+// shift/reduce conflict.
+// With canonical LR(1) we know that since this is expanded from B 'f' will not
+// follow L in this context.
 
-L = n f
+Start = a A e
+Start = b B f
+
+A = L f
+B = L e
+B = n f
+
 L = n
+L = m
