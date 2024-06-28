@@ -38,10 +38,10 @@ def red(count, symbol):
 def accept():
     def _accept_(st, _):
         st.top = st.stack.pop()
-        item = st.forest.pop()
-        st.accepted_expressions.append(item)
-        logger.debug('accepted')
-        logger.debug(pprint.pformat(item))
+        st.accepted_expressions.append(st.forest)
+        assert(len(st.accepted_expressions) == 1)
+        logger.debug('Accepted: {}'.format(
+                        pprint.pformat(st.accepted_expressions[0])))
         return False
     return _accept_
 
