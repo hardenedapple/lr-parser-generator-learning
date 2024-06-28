@@ -110,7 +110,7 @@ class Prediction:
         return '{} -> {} . {}\t\t{}'.format(self.key,
                                       ' '.join(self.gen[:self.idx]),
                                       ' '.join(self.gen[self.idx:]),
-                                      str(self.follow_set))
+                                      str(sorted(self.follow_set)))
 @dataclass(frozen=True)
 class ItemSet:
     predictions: frozenset[Prediction, ...]
@@ -135,17 +135,17 @@ class StateStore:
         assert(set(self.num_to_state.keys()) == set(range(len(mapping))))
     def __str__(self):
         chunks = [list() for _ in self.num_to_state]
-        for k, v in self.num_to_state.items():
+        for k, v in sorted(self.num_to_state.items()):
             chunks[k].append('{}:'.format(k))
             chunks[k].append(left_pad(str(v), '    '))
             if self.shift_actions[v]:
                 chunks[k].append('  Shifts:')
-                for sym, next_state in self.shift_actions[v].items():
+                for sym, next_state in sorted(self.shift_actions[v].items()):
                     chunks[k].append('    {}:  shift({})'.format(
                             sym, self.state_to_num[next_state]))
             if self.reduction_actions[v]:
                 chunks[k].append('  Reductions:')
-                for sym, pred in self.reduction_actions[v].items():
+                for sym, pred in sorted(self.reduction_actions[v].items()):
                     chunks[k].append('    {}:  reduce({})'.format(sym, pred))
             if self.accept_actions[v]:
                 chunks[k].append('  Accept on:')
@@ -290,7 +290,7 @@ def itemlists(rules, root_term, root_follow, first, nullable):
         seen[s] = counter
         counter += 1
         reductions, shifts, accepts = actions_for(s.predictions, root_term)
-        for sym in shifts:
+        for sym in sorted(shifts):
             extend_predictions(rules, shifts[sym])
             toadd = ItemSet.from_iterable(add_follows(shifts[sym]))
             shifts[sym] = toadd
