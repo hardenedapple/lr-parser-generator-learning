@@ -189,31 +189,23 @@ def update_follows(predictions, first, nullable):
         ns = p.next_sym()
         if terminal(ns):
             continue
-        update_list = [ns]
+        item = follow_items[ns]
         for sym in p.gen[p.idx+1:]:
-            for s in update_list:
-                item = follow_items[s]
-                if terminal(sym):
-                    item.terminals.add(sym)
-                else:
-                    item.terminals.update(first[sym])
+            toadd = [sym] if terminal(sym) else first[sym]
+            item.terminals.update(toadd)
             if sym not in nullable:
                 break
-            else: # N.b. must be a non-terminal because it's in `nullable`.
-                update_list.append(sym)
         else:
             # Above loop handles all up to last element.
             # If in this clause then the remainder of this rule is nullable
             # as a whole.
-            for s in update_list:
-                item = follow_items[s]
-                if p.idx != 0:
-                    # Already know the follow set that this has.  Follow set
-                    # not affected by calculation of follow set in this group.
-                    item.terminals.update(p.follow_set)
-                else:
-                    logger.info('sym: {} in prediction: {}'.format(s, p))
-                    item.follow.add(p.key)
+            if p.idx != 0:
+                # Already know the follow set that this has.  Follow set
+                # not affected by calculation of follow set in this group.
+                item.terminals.update(p.follow_set)
+            else:
+                logger.info('sym: {} in prediction: {}'.format(ns, p))
+                item.follow.add(p.key)
     def update_follow(current_follow):
         logger.debug('update_follow: ' + str(current_follow))
         ret = False
