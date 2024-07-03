@@ -137,7 +137,7 @@ if __name__ == '__main__':
     import default_log_arg
     default_log_arg.do_default_logarg()
     print('\nNext\n\n')
-    initialise_actions()
+    initialise_actions(None)
     st = State()
     advance(st, '(', '(')
     advance(st, 'name', 'x')
@@ -145,6 +145,7 @@ if __name__ == '__main__':
     advance(st, 'int', '10')
     advance(st, ')', ')')
     advance(st, '$', '$')
+    pprint.pprint(st.accepted_expressions)
 
     print('\nNext\n\n')
     st = State()
@@ -156,7 +157,9 @@ if __name__ == '__main__':
     advance(st, '*', '*')
     advance(st, 'name', 'y')
     advance(st, '$', '$')
+    pprint.pprint(st.accepted_expressions)
 
+    # Should fail with unexpected `$`.
     print('\nNext\n\n')
     st = State()
     advance(st, '(', '(')
