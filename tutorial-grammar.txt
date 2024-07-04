@@ -21,3 +21,7 @@ Term   = Minus int
 
 Minus = -
 Minus =
+
+name := abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+int := 0123456789 0123456789

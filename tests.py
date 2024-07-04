@@ -1,11 +1,13 @@
 import unittest
 import operator
 import random
-from parsing_from_text import parse_from_string
-from parse_grammar import get_rules
+from parsing_from_text import (parse_from_string, general_parse_from_string, ParametrisedTokenizer)
+from parse_grammar import get_rules, get_rules_and_tokens
 import itertools as itt
 import manual_tables
 import produce_sentences
+import logging
+logger = logging.getLogger(__name__)
 
 def merge_sentence_as_string(sent):
     # N.b. All tokens can be directly after each other (i.e. without
@@ -43,6 +45,10 @@ class TestManualExpressions(unittest.TestCase):
     Term   = ( Add )
     Term   = name
     Term   = int
+
+    name := abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+    int := 0123456789 0123456789
     '''
     def setUp(self):
         manual_tables.initialise_actions(None)
@@ -56,7 +62,8 @@ class TestManualExpressions(unittest.TestCase):
         known_ret = [[':Add', [':Factor', [':Term', 'x']]]]
         self.assertEqual(parse_from_string('x'), known_ret)
     def test_parser_accepts(self):
-        rules = get_rules(self.test_rules)
+        rules, named_tokens, unnamed_tokens = get_rules_and_tokens(self.test_rules)
+        generated_tokenizer = ParametrisedTokenizer(named_tokens, unnamed_tokens)
         all_keys = list(rules.keys())
         for _ in range(1000):
             gen_key = random.choice(all_keys)
@@ -67,8 +74,16 @@ class TestManualExpressions(unittest.TestCase):
             manual_tables.advance(st, '$', '')
             self.assertTrue(st.accepted_expressions)
             directly = st.accepted_expressions[0]
-            via_text = parse_from_string(merge_sentence_as_string(generated))
+            text_expression = merge_sentence_as_string(generated)
+            via_text = parse_from_string(text_expression)
             self.assertEqual(via_text, directly)
+            via_text_generated_tokenizer = general_parse_from_string(
+                            text_expression, generated_tokenizer)
+            self.assertEqual(via_text_generated_tokenizer, directly)
 
 if __name__ == '__main__':
+    import default_log_arg
+    default_log_arg.do_default_logarg()
+    import sys
+    sys.argv = [x for x in sys.argv if not x.startswith('--loglevel')]
     unittest.main()
