@@ -2,6 +2,9 @@
 Tokens in the grammar that I'm handling:
     (, ), +, *, integers, names
 '''
+import logging
+logger = logging.getLogger(__name__)
+
 class Tokenizer:
     def __init__(self, on_output):
         self.on_output = on_output
@@ -13,6 +16,7 @@ class Tokenizer:
 
 def st_0(tok, ch):
     '''Function for 'parse next char' when not in a word or integer'''
+    logger.debug('st_0: {} {}'.format(tok, ch))
     if ch.isdigit():
         tok.pos = (tok.column, tok.line)
         tok.inp.append(ch)
@@ -35,6 +39,7 @@ def st_0(tok, ch):
             (tok.column, tok.line), (tok.column+1, tok.line))
 
 def st_word(tok, ch):
+    logger.debug('st_word: {} {}'.format(tok, ch))
     if ch.isalpha() or ch == "_" or ch.isdigit():
         tok.inp.append(ch)
     else:
@@ -45,6 +50,7 @@ def st_word(tok, ch):
         st_0(tok, ch)
 
 def st_digits(tok, ch):
+    logger.debug('st_digits: {} {}'.format(tok, ch))
     if ch.isdigit():
         tok.inp.append(ch)
         return
