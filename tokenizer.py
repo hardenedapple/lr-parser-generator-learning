@@ -38,7 +38,7 @@ def st_word(tok, ch):
     if ch.isalpha() or ch == "_" or ch.isdigit():
         tok.inp.append(ch)
     else:
-        tok.on_output(''.join(tok.inp), "".join(tok.inp),
+        tok.on_output('name', "".join(tok.inp),
             tok.pos, (tok.column+1, tok.line))
         tok.inp = []
         tok.state = 'st_0'
