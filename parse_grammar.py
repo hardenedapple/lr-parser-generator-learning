@@ -55,6 +55,21 @@ if __name__ == '__main__':
     import pprint
     import default_log_arg
     default_log_arg.do_default_logarg()
-    rules, named_tokens, unnamed_tokens = get_rules_and_tokens(sys.stdin.read())
-    pprint.pprint(rules)
-    pprint.pprint(tokens)
+    text = sys.stdin.read()
+    if text:
+        rules, named_tokens, unnamed_tokens = get_rules_and_tokens(text)
+        pprint.pprint(rules)
+        pprint.pprint(named_tokens)
+        pprint.pprint(unnamed_tokens)
+    else:
+        text = '\n'.join(x.strip() for x in
+        '''
+        Start = hello world
+        hello := abc xyz
+        world    = n
+        world    = y
+        '''.splitlines())
+        rules, named_tokens, unnamed_tokens = get_rules_and_tokens(text)
+        assert(dict(rules) == {'Start': [['hello', 'world']], 'world': [['n'], ['y']]})
+        assert(named_tokens == {'hello': ('abc', 'xyz')})
+        assert(unnamed_tokens == {'n', 'y'})

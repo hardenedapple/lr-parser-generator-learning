@@ -1,6 +1,7 @@
 import pprint
 import logging
 logger = logging.getLogger(__name__)
+
 class State:
     def __init__(self):
         self.accepted_expressions = []
@@ -136,7 +137,6 @@ def initialise_actions(alt_actions):
 if __name__ == '__main__':
     import default_log_arg
     default_log_arg.do_default_logarg()
-    print('\nNext\n\n')
     initialise_actions(None)
     st = State()
     advance(st, '(', '(')
@@ -145,9 +145,8 @@ if __name__ == '__main__':
     advance(st, 'int', '10')
     advance(st, ')', ')')
     advance(st, '$', '$')
-    pprint.pprint(st.accepted_expressions)
+    logger.info(pprint.pformat(st.accepted_expressions))
 
-    print('\nNext\n\n')
     st = State()
     advance(st, 'name', 'x')
     advance(st, '+', '+')
@@ -157,10 +156,9 @@ if __name__ == '__main__':
     advance(st, '*', '*')
     advance(st, 'name', 'y')
     advance(st, '$', '$')
-    pprint.pprint(st.accepted_expressions)
+    logger.info(pprint.pformat(st.accepted_expressions))
 
     # Should fail with unexpected `$`.
-    print('\nNext\n\n')
     st = State()
     advance(st, '(', '(')
     advance(st, 'name', 'z')
@@ -168,4 +166,9 @@ if __name__ == '__main__':
     advance(st, 'int', '9')
     advance(st, '+', '+')
     advance(st, 'int', '10')
-    advance(st, '$', '$')
+    try:
+        advance(st, '$', '$')
+    except KeyError:
+        pass
+    else:
+        assert(not 'Should have failed with unexpected end of input')

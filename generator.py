@@ -144,8 +144,14 @@ def gen_table(rules, start_name):
     #   - Look at token on right hand side of the 'dot'.
     #   - If is nonterminal, add the rules to generate that.
     # Second, shift the 'dot' in all rules for above table entry.
-    #   - 
-
+    #   -
+    
+# This file was the first attempt at following the tutorial I found.
+# It did not actually end up with anything functional.
+# A bunch of things have changed since then.
+# Commenting out this script block since it just asserts and I have no
+# intention of fixing this half-way worked script.
+'''
 if __name__ == '__main__':
     import default_log_arg
     default_log_arg.do_default_logarg()
@@ -160,3 +166,4 @@ if __name__ == '__main__':
     logger.info('FIRST: ' + str(FIRST))
     FOLLOW = follow(all_rules)
     logger.info('FOLLOW: ' + str(FOLLOW))
+'''

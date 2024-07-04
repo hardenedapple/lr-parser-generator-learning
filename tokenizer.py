@@ -79,9 +79,24 @@ def tokenize(tok, ch):
 
 if __name__ == '__main__':
     import sys
-    def print_on_output(item, text, start, stop):
-        print((item, repr(text), start, stop))
+    text = sys.stdin.read()
+    if text:
+        def print_on_output(item, text, start, stop):
+            print((item, repr(text), start, stop))
 
-    tok = Tokenizer(print_on_output)
-    for ch in sys.stdin.read():
-        tokenize(tok, ch)
+        tok = Tokenizer(print_on_output)
+        for ch in sys.stdin.read():
+            tokenize(tok, ch)
+    else:
+        tokens = []
+        def record_tokens(*args):
+            tokens.append(args)
+        tok = Tokenizer(record_tokens)
+        for ch in 'hello +3*world10':
+            tokenize(tok, ch)
+        assert(tokens ==
+                [('name', 'hello', (1, 1), (7, 1)),
+                 ('+', '+', (7, 1), (8, 1)),
+                 ('int', '3', (8, 1), (10, 1)),
+                 ('*', '*', (9, 1), (10, 1))])
+

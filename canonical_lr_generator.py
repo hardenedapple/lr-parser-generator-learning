@@ -364,12 +364,30 @@ if __name__ == '__main__':
         tokenizer = get_tokenizer('slr_lr_grammar.txt')
         parsed_expression = parsing_from_text.general_parse_from_string(
                                 'b m ef', tokenizer)
-        pprint.pprint(parsed_expression)
+        assert(parsed_expression == ['b', [':B', [':L', 'm'], 'e'], 'f'])
         initialise_actions('tutorial-grammar.txt')
         tokenizer = get_tokenizer('tutorial-grammar.txt')
         parsed_expression = parsing_from_text.general_parse_from_string(
                                 'n * (4+5)*3 + somename', tokenizer)
-        pprint.pprint(parsed_expression)
+        assert(parsed_expression ==
+                    [[':Add',
+                      [':Add',
+                       [':Factor',
+                        [':Factor',
+                         [':Factor', [':Term', [':Minus'], 'n']],
+                         '*',
+                         [':Term',
+                          [':Minus'],
+                          '(',
+                          [':Add',
+                           [':Add', [':Factor', [':Term', [':Minus'], '4']]],
+                           '+',
+                           [':Factor', [':Term', [':Minus'], '5']]],
+                          ')']],
+                        '*',
+                        [':Term', [':Minus'], '3']]],
+                      '+',
+                      [':Factor', [':Term', [':Minus'], 'somename']]]])
 
         
     

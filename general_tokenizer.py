@@ -115,15 +115,36 @@ if __name__ == '__main__':
     import default_log_arg
     default_log_arg.do_default_logarg()
     import sys
-    def print_on_output(item, text, start, stop):
-        print((item, text, start, stop))
+    text = sys.stdin.read()
+    if not text:
+        running_basic_test = True
+        tokens = []
+        def action_to_perform(*args):
+            tokens.append(args)
+        text = 'word10* +13) x'
+    else:
+        running_basic_test = False
+        def action_to_perform(item, text, start, stop):
+            print((item, text, start, stop))
+
     all_states = states_from_grammar(
         { 'word': (string.ascii_letters + '_',
                    string.ascii_letters + '_'),
           'digit': (string.digits, string.digits)},
         '()+*-',
-        print_on_output)
-    tok = Tokenizer(all_states, lambda x, y: print_on_output('$', '', x, y))
-    for ch in sys.stdin.read():
+        action_to_perform)
+    tok = Tokenizer(all_states, lambda x, y: action_to_perform('$', '', x, y))
+    for ch in text:
         tok.consume_char(ch)
     tok.eof()
+    
+    if running_basic_test:
+        assert(tokens == [
+            ('word', 'word', (1, 1), (5, 1)),
+            ('digit', '10', (5, 1), (7, 1)),
+            ('*', '*', (7, 1), (8, 1)),
+            ('+', '+', (9, 1), (10, 1)),
+            ('digit', '13', (10, 1), (12, 1)),
+            (')', ')', (12, 1), (13, 1)),
+            ('word', 'x', (14, 1), (15, 1)),
+            ('$', '', (14, 1), (15, 1))])

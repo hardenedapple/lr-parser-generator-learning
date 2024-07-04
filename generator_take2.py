@@ -52,7 +52,7 @@
 #   - FOLLOW set (later to be associated with a specific itemset, but for now,
 #     with SLR, independent).
 
-from parse_grammar import get_rules
+from parse_grammar import get_rules, get_rules_and_tokens
 import manual_tables
 import enum
 from dataclasses import dataclass
@@ -348,6 +348,12 @@ def generate_action_tables(grammar_filename):
     logger.info('States: ' + str(states))
     return convert_to_action_table(states, 'Start')
 
+def get_tokenizer(grammar_filename):
+    with open(grammar_filename) as infile:
+        text = infile.read()
+    _, named_tokens, unnamed_tokens = get_rules_and_tokens(text)
+    return parsing_from_text.ParametrisedTokenizer(named_tokens, unnamed_tokens)
+
 def initialise_actions(grammar_filename):
     action_table = generate_action_tables(grammar_filename)
     manual_tables.initialise_actions(action_table)
@@ -358,8 +364,40 @@ if __name__ == '__main__':
     import parsing_from_text
     import default_log_arg
     default_log_arg.do_default_logarg()
-    initialise_actions('tutorial-grammar.txt')
-    logger.info('action_tables: ' + pprint.pformat(manual_tables.action_table))
-    parsed_expression = parsing_from_text.parse_from_string(sys.stdin.read())
-    pprint.pprint(parsed_expression)
-    
+    text = sys.stdin.read()
+    if text:
+        initialise_actions('tutorial-grammar.txt')
+        logger.info('action_tables: ' + pprint.pformat(manual_tables.action_table))
+        parsed_expression = parsing_from_text.parse_from_string(text)
+        pprint.pprint(parsed_expression)
+    else:
+        try:
+            initialise_actions('slr_lr_grammar.txt')
+        except AssertionError:
+            pass
+        else:
+            assert(not 'Should have failed to generate grammar! (is not SLR)')
+        initialise_actions('tutorial-grammar.txt')
+        tokenizer = get_tokenizer('tutorial-grammar.txt')
+        parsed_expression = parsing_from_text.general_parse_from_string(
+                                'n * (4+5)*3 + somename', tokenizer)
+        assert(parsed_expression ==
+                    [[':Add',
+                      [':Add',
+                       [':Factor',
+                        [':Factor',
+                         [':Factor', [':Term', [':Minus'], 'n']],
+                         '*',
+                         [':Term',
+                          [':Minus'],
+                          '(',
+                          [':Add',
+                           [':Add', [':Factor', [':Term', [':Minus'], '4']]],
+                           '+',
+                           [':Factor', [':Term', [':Minus'], '5']]],
+                          ')']],
+                        '*',
+                        [':Term', [':Minus'], '3']]],
+                      '+',
+                      [':Factor', [':Term', [':Minus'], 'somename']]]])
+

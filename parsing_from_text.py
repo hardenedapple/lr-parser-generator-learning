@@ -52,7 +52,17 @@ def parse_from_string(inp):
 
 if __name__ == '__main__':
     import default_log_arg
+    manual_tables.initialise_actions(None)
     default_log_arg.do_default_logarg()
-    parsed_expression = parse_from_string(sys.stdin.read())
-    import pprint
-    pprint.pprint(parsed_expression)
+    text = sys.stdin.read()
+    if text:
+        parsed_expression = parse_from_string(text)
+        import pprint
+        pprint.pprint(parsed_expression)
+    else:
+        parsed_expression = parse_from_string('hello +3*world10')
+        assert(parsed_expression ==
+                [[':Add',
+                  [':Add', [':Factor', [':Term', 'hello']]],
+                  '+',
+                  [':Factor', [':Factor', [':Term', '3']], '*', [':Term', 'world10']]]])
