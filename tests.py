@@ -44,14 +44,16 @@ class TestManualExpressions(unittest.TestCase):
     Term   = name
     Term   = int
     '''
+    def setUp(self):
+        manual_tables.initialise_actions(None)
     def test_basic(self):
         basic_exp = parse_from_string('x+y')
-        known_ret = [':Add', [':Add', [':Factor', [':Term', 'x']]], '+', [':Factor', [':Term', 'y']]]
+        known_ret = [[':Add', [':Add', [':Factor', [':Term', 'x']]], '+', [':Factor', [':Term', 'y']]]]
         self.assertEqual(basic_exp, known_ret)
         self.assertEqual(parse_from_string('x + y'), known_ret)
         self.assertEqual(parse_from_string('x+ y '), known_ret)
         self.assertEqual(parse_from_string('x+ y\n'), known_ret)
-        known_ret = [':Add', [':Factor', [':Term', 'x']]]
+        known_ret = [[':Add', [':Factor', [':Term', 'x']]]]
         self.assertEqual(parse_from_string('x'), known_ret)
     def test_parser_accepts(self):
         rules = get_rules(self.test_rules)
