@@ -10,12 +10,13 @@
 #   - Also, the FOLLOW set is generated in a completely different way.
 
 
-from parse_grammar import get_rules
+from parse_grammar import get_rules, get_rules_and_tokens
 import manual_tables
 import enum
 from dataclasses import dataclass
 import collections
 import itertools as itt
+import parsing_from_text
 import logging
 logger = logging.getLogger(__name__)
 
@@ -332,6 +333,12 @@ def generate_action_tables(grammar_filename):
     logger.info('States: ' + str(states))
     return convert_to_action_table(states, 'Start')
 
+def get_tokenizer(grammar_filename):
+    with open(grammar_filename) as infile:
+        text = infile.read()
+    _, named_tokens, unnamed_tokens = get_rules_and_tokens(text)
+    return parsing_from_text.ParametrisedTokenizer(named_tokens, unnamed_tokens)
+
 def initialise_actions(grammar_filename):
     action_table = generate_action_tables(grammar_filename)
     logger.info('action_tables: ' + pprint.pformat(action_table))
@@ -340,13 +347,29 @@ def initialise_actions(grammar_filename):
 if __name__ == '__main__':
     import pprint
     import sys
-    import parsing_from_text
     import default_log_arg
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--grammar', default='slr_lr_grammar.txt')
     args = default_log_arg.add_default_logarg(parser)
-    initialise_actions(args.grammar)
-    parsed_expression = parsing_from_text.parse_from_string(sys.stdin.read())
-    pprint.pprint(parsed_expression)
+    text = sys.stdin.read()
+    if text:
+        initialise_actions(args.grammar)
+        tokenizer = get_tokenizer(args.grammar)
+        parsed_expression = parsing_from_text.general_parse_from_string(
+                                sys.stdin.read(), tokenizer)
+        pprint.pprint(parsed_expression)
+    else:
+        initialise_actions('slr_lr_grammar.txt')
+        tokenizer = get_tokenizer('slr_lr_grammar.txt')
+        parsed_expression = parsing_from_text.general_parse_from_string(
+                                'b m ef', tokenizer)
+        pprint.pprint(parsed_expression)
+        initialise_actions('tutorial-grammar.txt')
+        tokenizer = get_tokenizer('tutorial-grammar.txt')
+        parsed_expression = parsing_from_text.general_parse_from_string(
+                                'n * (4+5)*3 + somename', tokenizer)
+        pprint.pprint(parsed_expression)
+
+        
     
