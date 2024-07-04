@@ -4,9 +4,6 @@ import pickle
 import pprint
 import difflib
 
-# TODO:
-#   - Implement nice "diff" of objects.
-
 def get_current(filename):
     answers = {}
     with open('accepted-testcases.txt') as infile:
