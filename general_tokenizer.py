@@ -103,7 +103,6 @@ def states_from_grammar(named_tokens, unnamed_tokens, on_output, include_whitesp
         single_char_states.append(make_nulling_state(string.whitespace))
     return named_states + single_char_states
 
-
 if __name__ == '__main__':
     import sys
     import string
