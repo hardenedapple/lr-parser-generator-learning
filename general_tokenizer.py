@@ -19,6 +19,10 @@ Tokens in the grammar that I'm handling:
 # implement that approach in the future.
 
 from dataclasses import dataclass, field
+import string
+import pprint
+import logging
+logger = logging.getLogger(__name__)
 
 class TokenizerState:
     def __init__(self, on_output, name, charset_first, charset_remainder):
@@ -37,6 +41,8 @@ class TokenizerState:
         return False
     def finish(self, start_pos, end_pos):
         self.on_output(self.name, ''.join(self.inp), start_pos, end_pos)
+    def __str__(self):
+        return f'{self.name}: ({repr(self.charset_first)}, {repr(self.charset_remainder)})  -- {self.on_output.__name__}'
 
 def do_nothing(*args):
     pass
@@ -55,6 +61,8 @@ def make_single_char_states(on_output, chars):
 # `all_states` is a list TokenizerState values.
 class Tokenizer:
     def __init__(self, all_states, on_end):
+        logger.debug('Tokenizer init: {}'.format(
+                    '\n'.join([str(x) for x in all_states])))
         self.on_end = on_end
         self.all_states = all_states
         assert(len(all_states) ==
@@ -104,8 +112,9 @@ def states_from_grammar(named_tokens, unnamed_tokens, on_output, include_whitesp
     return named_states + single_char_states
 
 if __name__ == '__main__':
+    import default_log_arg
+    default_log_arg.do_default_logarg()
     import sys
-    import string
     def print_on_output(item, text, start, stop):
         print((item, text, start, stop))
     all_states = states_from_grammar(
