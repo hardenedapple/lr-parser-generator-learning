@@ -94,20 +94,27 @@ class Tokenizer:
             self.pos = (self.column, self.line)
         self.update_position(ch)
 
+def states_from_grammar(named_tokens, unnamed_tokens, on_output, include_whitespace=True):
+    named_states = [TokenizerState(on_output, name, first, remainder)
+                    for name, (first, remainder) in named_tokens.items()]
+    single_char_states = [TokenizerState(on_output, x, x, '')
+                          for x in unnamed_tokens]
+    if include_whitespace:
+        single_char_states.append(make_nulling_state(string.whitespace))
+    return named_states + single_char_states
+
+
 if __name__ == '__main__':
     import sys
     import string
     def print_on_output(item, text, start, stop):
         print((item, text, start, stop))
-    word_state = TokenizerState(print_on_output, 'word',
-                                string.ascii_letters + '_',
-                                string.ascii_letters + '_')
-    number_state = TokenizerState(print_on_output, 'digit', string.digits,
-                                  string.digits)
-    all_states = [TokenizerState(print_on_output, x, x, '')
-                  for x in ('+', '*', '(', ')', '-')]
-    all_states += [word_state, number_state]
-    all_states += [make_nulling_state(string.whitespace)]
+    all_states = states_from_grammar(
+        { 'word': (string.ascii_letters + '_',
+                   string.ascii_letters + '_'),
+          'digit': (string.digits, string.digits)},
+        '()+*-',
+        print_on_output)
     tok = Tokenizer(all_states, lambda x, y: print_on_output('$', '', x, y))
     for ch in sys.stdin.read():
         tok.consume_char(ch)
